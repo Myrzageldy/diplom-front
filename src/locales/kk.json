@@ -1,0 +1,310 @@
+{
+  "metadata": {
+    "title": "EduPlatform KZ - Қазақстандағы онлайн оқыту",
+    "description": "Қазақстан үшін білім беру платформасы. Онлайн жаңа нәрселер үйреніңіз."
+  },
+  "common": {
+    "loading": "Жүктелуде...",
+    "error": "Қате",
+    "save": "Сақтау",
+    "cancel": "Болдырмау",
+    "back": "Артқа",
+    "next": "Келесі",
+    "all": "Барлығы",
+    "search": "Іздеу"
+  },
+  "header": {
+    "courses": "Курстар",
+    "about": "Біз туралы",
+    "login": "Кіру",
+    "register": "Тіркелу",
+    "profile": "Профиль",
+    "settings": "Баптаулар",
+    "certificates": "Сертификаттар",
+    "logout": "Шығу",
+    "lightTheme": "Жарық тақырып",
+    "darkTheme": "Қараңғы тақырып",
+    "teacher": "Оқытушы",
+    "student": "Оқушы"
+  },
+  "home": {
+    "title": "Шекарасыз білім",
+    "subtitle": "Қазақстанның үздік оқытушыларынан курстар табыңыз немесе өз курсыңызды жасап, мыңдаған оқушылармен біліміңізді бөлісіңіз.",
+    "startLearning": "Оқуды бастау",
+    "login": "Кіру",
+    "stats": {
+      "courses": "Курстар",
+      "teachers": "Оқытушылар",
+      "students": "Оқушылар",
+      "languages": "Тіл"
+    },
+    "forWhom": {
+      "title": "Бұл платформа кімдерге арналған?",
+      "subtitle": "EduPlatform оқығысы немесе білімін бөліскісі келетін барлық адамдар үшін жасалған"
+    },
+    "forStudents": {
+      "title": "Оқушылар үшін",
+      "feature1": "Кез келген тақырып бойынша курстар табыңыз",
+      "feature2": "Қазақша және орысша оқыңыз",
+      "feature3": "Сертификаттар алыңыз",
+      "feature4": "Ыңғайлы уақытта 24/7 оқыңыз",
+      "cta": "Оқуды бастау"
+    },
+    "forTeachers": {
+      "title": "Оқытушылар үшін",
+      "feature1": "Өз курстарыңызды жасаңыз",
+      "feature2": "Біліммен табыс табыңыз",
+      "feature3": "Мыңдаған оқушыларға көмектесіңіз",
+      "feature4": "Жасауға ыңғайлы құралдар",
+      "cta": "Оқытуды бастау"
+    },
+    "footer": {
+      "rights": "EduPlatform. Барлық құқықтар қорғалған."
+    }
+  },
+  "login": {
+    "title": "Қош келдіңіз!",
+    "subtitle": "Оқуды жалғастыру үшін аккаунтыңызға кіріңіз",
+    "email": "Email",
+    "password": "Құпия сөз",
+    "emailPlaceholder": "example@mail.com",
+    "passwordPlaceholder": "Құпия сөзді енгізіңіз",
+    "rememberMe": "Мені есте сақта",
+    "forgotPassword": "Құпия сөзді ұмыттыңыз ба?",
+    "submit": "Кіру",
+    "submitting": "Кіру...",
+    "noAccount": "Аккаунтыңыз жоқ па?",
+    "register": "Тіркелу",
+    "errorDefault": "Кіру қатесі. Қайталап көріңіз.",
+    "sideTitle": "Ыңғайлы уақытта оқыңыз",
+    "sideSubtitle": "Кез келген құрылғыдан курстарға 24/7 қол жеткізу"
+  },
+  "register": {
+    "step1": {
+      "title": "Сіз кімсіз?",
+      "subtitle": "Платформадағы рөліңізді таңдаңыз",
+      "student": "Оқушы",
+      "studentDesc": "Оқып, курстардан өткім келеді",
+      "teacher": "Оқытушы",
+      "teacherDesc": "Курстар жасап, сатқым келеді"
+    },
+    "step2": {
+      "title": "Сіздің email",
+      "subtitle": "Растау кодын жібереміз",
+      "email": "Email",
+      "submit": "Код алу",
+      "submitting": "Жіберілуде...",
+      "errorDefault": "Кодты жіберу қатесі. Қайталап көріңіз."
+    },
+    "step3": {
+      "title": "Кодты енгізіңіз",
+      "subtitle": "Код жіберілді",
+      "code": "6 санды код",
+      "codePlaceholder": "000000",
+      "submit": "Растау",
+      "submitting": "Тексерілуде...",
+      "resend": "Кодты қайта жіберу",
+      "resendSuccess": "Код қайта жіберілді",
+      "errorDefault": "Қате код. Қайталап көріңіз."
+    },
+    "step4": {
+      "title": "Соңғы қадам",
+      "subtitle": "Атыңызды және құпия сөзді енгізіңіз",
+      "name": "Аты",
+      "namePlaceholder": "Сіздің атыңыз?",
+      "password": "Құпия сөз",
+      "passwordPlaceholder": "Кемінде 8 таңба",
+      "confirmPassword": "Құпия сөзді растаңыз",
+      "confirmPasswordPlaceholder": "Құпия сөзді қайталаңыз",
+      "terms": "Мен келісемін",
+      "termsLink": "пайдалану шарттары",
+      "and": "және",
+      "privacyLink": "құпиялылық саясаты",
+      "submit": "Тіркелу",
+      "submitting": "Тіркелу...",
+      "passwordMismatch": "Құпия сөздер сәйкес келмейді",
+      "errorDefault": "Тіркелу қатесі. Қайталап көріңіз."
+    },
+    "hasAccount": "Аккаунтыңыз бар ма?",
+    "login": "Кіру",
+    "sideStudent": {
+      "title": "Білім жолын бастаңыз",
+      "subtitle": "Қазақстанның үздік оқытушыларынан жүздеген курстар"
+    },
+    "sideTeacher": {
+      "title": "Білімді бөлісіп, табыс табыңыз",
+      "subtitle": "Курстар жасап, мыңдаған оқушыларға көмектесіңіз"
+    }
+  },
+  "profile": {
+    "title": "Профиль",
+    "name": "Аты",
+    "email": "Email",
+    "role": "Рөл",
+    "teacher": "Оқытушы",
+    "student": "Оқушы",
+    "dateJoined": "Тіркелген күні",
+    "edit": "Өңдеу",
+    "save": "Сақтау",
+    "saving": "Сақталуда...",
+    "cancel": "Болдырмау",
+    "updated": "Профиль жаңартылды",
+    "updateError": "Сақтау кезінде қате"
+  },
+  "settings": {
+    "title": "Баптаулар",
+    "theme": {
+      "title": "Безендіру тақырыбы",
+      "light": "Жарық",
+      "lightDesc": "Күндізгі режим",
+      "dark": "Қараңғы",
+      "darkDesc": "Түнгі режим",
+      "selected": "Таңдалған"
+    },
+    "language": {
+      "title": "Интерфейс тілі",
+      "ru": "Орысша",
+      "ruDesc": "Russian",
+      "kk": "Қазақша",
+      "kkDesc": "Kazakh",
+      "selected": "Таңдалған"
+    },
+    "notifications": {
+      "title": "Хабарландырулар",
+      "email": "Email хабарландырулар",
+      "emailDesc": "Жаңалықтар мен жаңартулар алу",
+      "reminders": "Курс еске салғыштары",
+      "remindersDesc": "Аяқталмаған сабақтарды еске салу"
+    }
+  },
+  "studentDashboard": {
+    "greeting": "Сәлем, {name}!",
+    "subtitle": "Мақсаттарыңызға жетуге көмектесетін курс табыңыз",
+    "myCourses": "Менің курстарым",
+    "lessons": "сабақ",
+    "browseCourses": "Курстар каталогы",
+    "searchPlaceholder": "Курстарды іздеу...",
+    "foundCourses": "Табылған курстар: {count}",
+    "students": "{count} оқушы",
+    "free": "Тегін",
+    "noCourses": {
+      "title": "Курстар әлі қосылмаған",
+      "subtitle": "Жақында мұнда үздік оқытушылардың курстары пайда болады"
+    }
+  },
+  "teacherDashboard": {
+    "greeting": "Қош келдіңіз, {name}!",
+    "subtitle": "Курстарыңызды басқарыңыз және жаңаларын жасаңыз",
+    "stats": {
+      "courses": "Курстар",
+      "students": "Оқушылар",
+      "published": "Жарияланған"
+    },
+    "myCourses": "Менің курстарым",
+    "createCourse": "Курс жасау",
+    "createFirstCourse": "Бірінші курсты жасау",
+    "students": "{count} оқушы",
+    "published": "Жарияланған",
+    "draft": "Жоба",
+    "noCourses": {
+      "title": "Сізде әлі курстар жоқ",
+      "subtitle": "Бірінші курсыңызды жасап, білімді бөлісуді бастаңыз"
+    },
+    "modal": {
+      "title": "Курс жасау",
+      "text": "Курс жасау функциясы жақында қолжетімді болады. Әзірге курстарды әкімші панелі арқылы жасай аласыз.",
+      "ok": "Түсінікті"
+    }
+  },
+  "learn": {
+    "progress": "Прогресс",
+    "lessonsCompleted": "сабақ өтілді",
+    "module": "Модуль",
+    "test": "Тест",
+    "min": "мин",
+    "completed": "Аяқталды",
+    "markComplete": "Аяқталды деп белгілеу",
+    "materials": "Материалдар",
+    "prevLesson": "Алдыңғы",
+    "nextLesson": "Келесі",
+    "backToCourse": "Курсқа",
+    "backToCourses": "Курстар каталогына",
+    "noLessons": "Бұл курста әлі сабақтар жоқ",
+    "startLearning": "Оқуды бастау"
+  },
+  "courses": {
+    "title": "Курстар каталогы",
+    "searchPlaceholder": "Курстарды іздеу...",
+    "allCategories": "Барлық санаттар",
+    "students": "оқушы",
+    "noRating": "Бағалау жоқ",
+    "noCourses": "Курстар табылмады",
+    "tryDifferent": "Іздеу сұрауын немесе сүзгілерді өзгертіп көріңіз"
+  },
+  "courseDetail": {
+    "teacher": "Оқытушы",
+    "students": "оқушы",
+    "modules": "модуль",
+    "lessons": "сабақ",
+    "free": "Тегін",
+    "enrolled": "Сіз жазылдыңыз",
+    "enroll": "Курсқа жазылу",
+    "enrolling": "Жазылу...",
+    "continueLearning": "Оқуды жалғастыру",
+    "loginToEnroll": "Жазылу үшін кіріңіз",
+    "aboutCourse": "Курс туралы",
+    "courseContent": "Курс мазмұны",
+    "test": "Тест"
+  },
+  "test": {
+    "questions": "Сұрақтар",
+    "passingScore": "Өту балы",
+    "timeLimit": "Уақыт",
+    "minutes": "мин",
+    "attemptsLeft": "Қалған әрекеттер",
+    "previousAttempts": "Алдыңғы әрекеттер",
+    "attempt": "Әрекет",
+    "startTest": "Тестті бастау",
+    "retake": "Қайта өту",
+    "backToCourse": "Курсқа",
+    "selectOne": "Бір жауапты таңдаңыз",
+    "selectMultiple": "Бірнеше жауап таңдаңыз",
+    "points": "балл",
+    "submit": "Тестті аяқтау",
+    "submitting": "Жіберілуде...",
+    "passed": "Тест өтті!",
+    "failed": "Тест өтпеді",
+    "tryAgain": "Қайталап көру",
+    "allAttempts": "Барлық әрекеттер"
+  },
+  "certificates": {
+    "title": "Менің сертификаттарым",
+    "noCertificates": "Сізде әлі сертификаттар жоқ",
+    "noCertificatesDesc": "Сертификаттар алу үшін курстарды аяқтаңыз және барлық тесттерден өтіңіз",
+    "browseCourses": "Курстарды табу",
+    "issuedTo": "Берілді",
+    "number": "Нөмір",
+    "issuedAt": "Берілген күні",
+    "view": "Көру",
+    "download": "Жүктеу",
+    "verifyCertificate": "Сертификатты тексеру",
+    "verifyByNumber": "Нөмір бойынша тексеру",
+    "verifyDesc": "Түпнұсқалығын тексеру үшін сертификат нөмірін енгізіңіз",
+    "certificateNumber": "Сертификат нөмірі",
+    "verify": "Тексеру",
+    "verifying": "Тексерілуде...",
+    "validCertificate": "Сертификат жарамды",
+    "validDesc": "Бұл сертификат біздің платформамен ресми түрде берілген",
+    "invalidCertificate": "Сертификат табылмады",
+    "invalidDesc": "Бұл нөмірмен сертификат біздің жүйеде жоқ",
+    "searchedFor": "Ізделген нөмір",
+    "verifyAnother": "Басқасын тексеру",
+    "goHome": "Басты бетке",
+    "certificateTitle": "Аяқтау сертификаты",
+    "awardedTo": "Берілді",
+    "forCompletion": "Курсты сәтті аяқтағаны үшін",
+    "instructor": "Оқытушы",
+    "certificateId": "Сертификат ID",
+    "issuedDate": "Берілген күні"
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "metadata": {
+    "title": "EduPlatform KZ - Онлайн обучение в Казахстане",
+    "description": "Образовательная платформа для Казахстана. Учитесь новому онлайн."
+  },
+  "common": {
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "back": "Назад",
+    "next": "Далее",
+    "all": "Все",
+    "search": "Поиск"
+  },
+  "header": {
+    "courses": "Курсы",
+    "about": "О нас",
+    "login": "Войти",
+    "register": "Регистрация",
+    "profile": "Профиль",
+    "settings": "Настройки",
+    "certificates": "Сертификаты",
+    "logout": "Выйти",
+    "lightTheme": "Светлая тема",
+    "darkTheme": "Тёмная тема",
+    "teacher": "Преподаватель",
+    "student": "Ученик"
+  },
+  "home": {
+    "title": "Образование без границ",
+    "subtitle": "Найдите курсы от лучших преподавателей Казахстана или создайте свой собственный курс и делитесь знаниями с тысячами учеников.",
+    "startLearning": "Начать обучение",
+    "login": "Войти",
+    "stats": {
+      "courses": "Курсов",
+      "teachers": "Преподавателей",
+      "students": "Учеников",
+      "languages": "Языка"
+    },
+    "forWhom": {
+      "title": "Для кого эта платформа?",
+      "subtitle": "EduPlatform создан для всех, кто хочет учиться или делиться знаниями"
+    },
+    "forStudents": {
+      "title": "Для учеников",
+      "feature1": "Находите курсы по любой теме",
+      "feature2": "Учитесь на казахском и русском",
+      "feature3": "Получайте сертификаты",
+      "feature4": "Учитесь в удобном темпе 24/7",
+      "cta": "Начать учиться"
+    },
+    "forTeachers": {
+      "title": "Для преподавателей",
+      "feature1": "Создавайте свои курсы",
+      "feature2": "Зарабатывайте на знаниях",
+      "feature3": "Помогайте тысячам учеников",
+      "feature4": "Удобные инструменты для создания",
+      "cta": "Начать преподавать"
+    },
+    "footer": {
+      "rights": "EduPlatform. Все права защищены."
+    }
+  },
+  "login": {
+    "title": "Добро пожаловать!",
+    "subtitle": "Войдите в свой аккаунт чтобы продолжить обучение",
+    "email": "Email",
+    "password": "Пароль",
+    "emailPlaceholder": "example@mail.com",
+    "passwordPlaceholder": "Введите пароль",
+    "rememberMe": "Запомнить меня",
+    "forgotPassword": "Забыли пароль?",
+    "submit": "Войти",
+    "submitting": "Вход...",
+    "noAccount": "Нет аккаунта?",
+    "register": "Зарегистрироваться",
+    "errorDefault": "Ошибка входа. Попробуйте снова.",
+    "sideTitle": "Учитесь в удобном темпе",
+    "sideSubtitle": "Доступ к курсам 24/7 с любого устройства"
+  },
+  "register": {
+    "step1": {
+      "title": "Кто вы?",
+      "subtitle": "Выберите вашу роль на платформе",
+      "student": "Ученик",
+      "studentDesc": "Хочу учиться и проходить курсы",
+      "teacher": "Преподаватель",
+      "teacherDesc": "Хочу создавать и продавать курсы"
+    },
+    "step2": {
+      "title": "Ваш email",
+      "subtitle": "Мы отправим код подтверждения",
+      "email": "Email",
+      "submit": "Получить код",
+      "submitting": "Отправка...",
+      "errorDefault": "Ошибка отправки кода. Попробуйте снова."
+    },
+    "step3": {
+      "title": "Введите код",
+      "subtitle": "Код отправлен на",
+      "code": "6-значный код",
+      "codePlaceholder": "000000",
+      "submit": "Подтвердить",
+      "submitting": "Проверка...",
+      "resend": "Отправить код повторно",
+      "resendSuccess": "Код отправлен повторно",
+      "errorDefault": "Неверный код. Попробуйте снова."
+    },
+    "step4": {
+      "title": "Последний шаг",
+      "subtitle": "Введите имя и придумайте пароль",
+      "name": "Имя",
+      "namePlaceholder": "Как вас зовут?",
+      "password": "Пароль",
+      "passwordPlaceholder": "Минимум 8 символов",
+      "confirmPassword": "Подтвердите пароль",
+      "confirmPasswordPlaceholder": "Повторите пароль",
+      "terms": "Я согласен с",
+      "termsLink": "условиями использования",
+      "and": "и",
+      "privacyLink": "политикой конфиденциальности",
+      "submit": "Зарегистрироваться",
+      "submitting": "Регистрация...",
+      "passwordMismatch": "Пароли не совпадают",
+      "errorDefault": "Ошибка регистрации. Попробуйте снова."
+    },
+    "hasAccount": "Уже есть аккаунт?",
+    "login": "Войти",
+    "sideStudent": {
+      "title": "Начните свой путь к знаниям",
+      "subtitle": "Сотни курсов от лучших преподавателей Казахстана"
+    },
+    "sideTeacher": {
+      "title": "Делитесь знаниями и зарабатывайте",
+      "subtitle": "Создавайте курсы и помогайте тысячам учеников"
+    }
+  },
+  "profile": {
+    "title": "Профиль",
+    "name": "Имя",
+    "email": "Email",
+    "role": "Роль",
+    "teacher": "Преподаватель",
+    "student": "Ученик",
+    "dateJoined": "Дата регистрации",
+    "edit": "Редактировать",
+    "save": "Сохранить",
+    "saving": "Сохранение...",
+    "cancel": "Отмена",
+    "updated": "Профиль обновлён",
+    "updateError": "Ошибка при сохранении"
+  },
+  "settings": {
+    "title": "Настройки",
+    "theme": {
+      "title": "Тема оформления",
+      "light": "Светлая",
+      "lightDesc": "Дневной режим",
+      "dark": "Тёмная",
+      "darkDesc": "Ночной режим",
+      "selected": "Выбрано"
+    },
+    "language": {
+      "title": "Язык интерфейса",
+      "ru": "Русский",
+      "ruDesc": "Russian",
+      "kk": "Qazaqsha",
+      "kkDesc": "Kazakh",
+      "selected": "Выбрано"
+    },
+    "notifications": {
+      "title": "Уведомления",
+      "email": "Email уведомления",
+      "emailDesc": "Получать новости и обновления",
+      "reminders": "Напоминания о курсах",
+      "remindersDesc": "Напоминать о незавершённых уроках"
+    }
+  },
+  "studentDashboard": {
+    "greeting": "Привет, {name}!",
+    "subtitle": "Найдите курс, который поможет вам достичь ваших целей",
+    "myCourses": "Мои курсы",
+    "lessons": "уроков",
+    "browseCourses": "Каталог курсов",
+    "searchPlaceholder": "Поиск курсов...",
+    "foundCourses": "Найдено курсов: {count}",
+    "students": "{count} учеников",
+    "free": "Бесплатно",
+    "noCourses": {
+      "title": "Курсы пока не добавлены",
+      "subtitle": "Скоро здесь появятся курсы от лучших преподавателей"
+    }
+  },
+  "teacherDashboard": {
+    "greeting": "Добро пожаловать, {name}!",
+    "subtitle": "Управляйте своими курсами и создавайте новые",
+    "stats": {
+      "courses": "Курсов",
+      "students": "Учеников",
+      "published": "Опубликовано"
+    },
+    "myCourses": "Мои курсы",
+    "createCourse": "Создать курс",
+    "createFirstCourse": "Создать первый курс",
+    "students": "{count} учеников",
+    "published": "Опубликован",
+    "draft": "Черновик",
+    "noCourses": {
+      "title": "У вас пока нет курсов",
+      "subtitle": "Создайте свой первый курс и начните делиться знаниями"
+    },
+    "modal": {
+      "title": "Создание курса",
+      "text": "Функция создания курсов скоро будет доступна. Пока вы можете создавать курсы через админ-панель.",
+      "ok": "Понятно"
+    }
+  },
+  "learn": {
+    "progress": "Прогресс",
+    "lessonsCompleted": "уроков пройдено",
+    "module": "Модуль",
+    "test": "Тест",
+    "min": "мин",
+    "completed": "Завершён",
+    "markComplete": "Отметить завершённым",
+    "materials": "Материалы",
+    "prevLesson": "Предыдущий",
+    "nextLesson": "Следующий",
+    "backToCourse": "К курсу",
+    "backToCourses": "К каталогу курсов",
+    "noLessons": "В этом курсе пока нет уроков",
+    "startLearning": "Начать обучение"
+  },
+  "courses": {
+    "title": "Каталог курсов",
+    "searchPlaceholder": "Поиск курсов...",
+    "allCategories": "Все категории",
+    "students": "учеников",
+    "noRating": "Нет оценок",
+    "noCourses": "Курсы не найдены",
+    "tryDifferent": "Попробуйте изменить поисковый запрос или фильтры"
+  },
+  "courseDetail": {
+    "teacher": "Преподаватель",
+    "students": "учеников",
+    "modules": "модулей",
+    "lessons": "уроков",
+    "free": "Бесплатно",
+    "enrolled": "Вы записаны",
+    "enroll": "Записаться на курс",
+    "enrolling": "Запись...",
+    "continueLearning": "Продолжить обучение",
+    "loginToEnroll": "Войдите чтобы записаться",
+    "aboutCourse": "О курсе",
+    "courseContent": "Содержание курса",
+    "test": "Тест"
+  },
+  "test": {
+    "questions": "Вопросов",
+    "passingScore": "Проходной балл",
+    "timeLimit": "Время",
+    "minutes": "мин",
+    "attemptsLeft": "Попыток осталось",
+    "previousAttempts": "Предыдущие попытки",
+    "attempt": "Попытка",
+    "startTest": "Начать тест",
+    "retake": "Пройти заново",
+    "backToCourse": "К курсу",
+    "selectOne": "Выберите один ответ",
+    "selectMultiple": "Выберите несколько ответов",
+    "points": "баллов",
+    "submit": "Завершить тест",
+    "submitting": "Отправка...",
+    "passed": "Тест пройден!",
+    "failed": "Тест не пройден",
+    "tryAgain": "Попробовать снова",
+    "allAttempts": "Все попытки"
+  },
+  "certificates": {
+    "title": "Мои сертификаты",
+    "noCertificates": "У вас пока нет сертификатов",
+    "noCertificatesDesc": "Завершите курсы и пройдите все тесты, чтобы получить сертификаты",
+    "browseCourses": "Найти курсы",
+    "issuedTo": "Выдан",
+    "number": "Номер",
+    "issuedAt": "Дата выдачи",
+    "view": "Посмотреть",
+    "download": "Скачать",
+    "verifyCertificate": "Проверить сертификат",
+    "verifyByNumber": "Проверить по номеру",
+    "verifyDesc": "Введите номер сертификата для проверки подлинности",
+    "certificateNumber": "Номер сертификата",
+    "verify": "Проверить",
+    "verifying": "Проверка...",
+    "validCertificate": "Сертификат действителен",
+    "validDesc": "Этот сертификат был официально выдан нашей платформой",
+    "invalidCertificate": "Сертификат не найден",
+    "invalidDesc": "Сертификат с таким номером не существует в нашей системе",
+    "searchedFor": "Искали номер",
+    "verifyAnother": "Проверить другой",
+    "goHome": "На главную",
+    "certificateTitle": "Сертификат об окончании",
+    "awardedTo": "Присуждается",
+    "forCompletion": "За успешное прохождение курса",
+    "instructor": "Преподаватель",
+    "certificateId": "ID сертификата",
+    "issuedDate": "Дата выдачи"
+  }
+}
