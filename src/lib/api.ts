@@ -1,10 +1,93 @@
 /**
  * API модуль для связи с бэкендом
  *
- * Здесь все функции для отправки запросов на Django сервер
+ * Здесь все функции для отправки запросов на Django сервер.
+ * URL-адреса берутся из переменных окружения (.env.local),
+ * что позволяет легко переключаться между dev и production.
  */
 
-const API_URL = 'http://localhost:8000/api';
+import { setAuthCookie, clearAuthCookie, isTokenValid } from './tokenSecurity';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+const MEDIA_URL = process.env.NEXT_PUBLIC_MEDIA_URL ?? 'http://localhost:8000';
+
+/**
+ * Получить полный URL для медиа-файла
+ */
+export function getMediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${MEDIA_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
+/**
+ * Обёртка для fetch с обработкой 401 ошибки
+ * При истёкшем токене пробует обновить через refresh token
+ */
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  let token = getAccessToken();
+
+  // Если токен истёк — сразу пробуем обновить, не тратя запрос
+  if (token && !isTokenValid(token)) {
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      await logoutUser();
+    }
+    token = getAccessToken();
+  }
+
+  const headers = new Headers(options.headers);
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  let response = await fetch(url, { ...options, headers });
+
+  // Если 401 (сервер отклонил) и есть refresh токен — повторная попытка
+  if (response.status === 401 && localStorage.getItem('refresh_token')) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      const newToken = getAccessToken();
+      if (newToken) {
+        headers.set('Authorization', `Bearer ${newToken}`);
+      }
+      response = await fetch(url, { ...options, headers });
+    } else {
+      await logoutUser();
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Обновить access token через refresh token
+ */
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch(`${API_URL}/users/token/refresh/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem('access_token', data.access);
+      if (data.refresh) {
+        localStorage.setItem('refresh_token', data.refresh);
+      }
+      return true;
+    }
+  } catch {
+    // Ошибка сети - ничего не делаем
+  }
+
+  return false;
+}
 
 // Типы данных
 export type UserRole = 'student' | 'teacher';
@@ -140,6 +223,9 @@ export async function registerUser(data: {
   localStorage.setItem('refresh_token', result.tokens.refresh);
   localStorage.setItem('user', JSON.stringify(result.user));
 
+  // Устанавливаем auth cookie для серверного middleware (без JWT, только флаг)
+  setAuthCookie(result.user.role);
+
   return result;
 }
 
@@ -149,7 +235,7 @@ export async function registerUser(data: {
 export async function loginUser(data: {
   email: string;
   password: string;
-}): Promise<AuthResponse> {
+}): Promise<AuthResponse | { requires_2fa: true; temp_token: string }> {
   const response = await fetch(`${API_URL}/users/login/`, {
     method: 'POST',
     headers: {
@@ -161,7 +247,12 @@ export async function loginUser(data: {
   const result = await response.json();
 
   if (!response.ok) {
-    throw result as ApiError;
+    throw result as ApiError & { locked?: boolean; locked_until?: string };
+  }
+
+  // Шаг 1 двухфакторной аутентификации — токены ещё не выданы
+  if (result.requires_2fa) {
+    return result as { requires_2fa: true; temp_token: string };
   }
 
   // Сохраняем токены в localStorage
@@ -169,16 +260,48 @@ export async function loginUser(data: {
   localStorage.setItem('refresh_token', result.tokens.refresh);
   localStorage.setItem('user', JSON.stringify(result.user));
 
+  // Устанавливаем auth cookie для серверного middleware (без JWT, только флаг)
+  setAuthCookie(result.user.role);
+
   return result;
 }
 
 /**
  * Выход из аккаунта
+ *
+ * Инвалидирует refresh token на сервере (blacklist), затем очищает
+ * локальные данные сессии. Защита от кражи refresh token: даже украденный
+ * токен перестаёт работать сразу после вызова logout.
+ *
+ * ВАЖНО: даже если запрос к серверу не прошёл — локальная сессия всё равно
+ * очищается (пользователь выходит на клиенте).
  */
-export function logoutUser(): void {
+export async function logoutUser(): Promise<void> {
+  const refreshToken = localStorage.getItem('refresh_token');
+  const accessToken = localStorage.getItem('access_token');
+
+  // Инвалидируем refresh token на сервере (добавляем в blacklist)
+  if (refreshToken) {
+    try {
+      await fetch(`${API_URL}/users/logout/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+    } catch {
+      // Ошибка сети — всё равно очищаем локально
+    }
+  }
+
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('user');
+
+  // Очищаем auth cookie — middleware перестанет пускать на защищённые маршруты
+  clearAuthCookie();
 }
 
 /**
@@ -210,14 +333,9 @@ export function getAccessToken(): string | null {
  * Обновить профиль пользователя
  */
 export async function updateProfile(data: { name: string }): Promise<{ message: string; user: User }> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/users/profile/`, {
+  const response = await fetchWithAuth(`${API_URL}/users/profile/`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -234,17 +352,38 @@ export async function updateProfile(data: { name: string }): Promise<{ message: 
 }
 
 /**
+ * Удалить аккаунт пользователя
+ * Требует подтверждение паролем, после чего чистит localStorage и cookie
+ */
+export async function deleteAccount(password: string): Promise<{ message: string }> {
+  const refreshToken = localStorage.getItem('refresh_token');
+
+  const response = await fetchWithAuth(`${API_URL}/users/delete-account/`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password, refresh: refreshToken }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw result as ApiError;
+  }
+
+  // Очищаем всё локально после успешного удаления
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+  clearAuthCookie();
+
+  return result;
+}
+
+/**
  * Получить профиль с сервера
  */
 export async function fetchProfile(): Promise<User> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/users/profile/`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  const response = await fetchWithAuth(`${API_URL}/users/profile/`);
 
   const result = await response.json();
 
@@ -300,42 +439,30 @@ export async function getCategories(): Promise<Category[]> {
  * Получить курсы преподавателя
  */
 export async function getTeacherCourses(): Promise<TeacherCoursesResponse> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/my/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  const result = await response.json();
+  const response = await fetchWithAuth(`${API_URL}/courses/my/`);
 
   if (!response.ok) {
-    throw result as ApiError;
+    let error: ApiError = {};
+    try { error = await response.json(); } catch { /* ignore parse error */ }
+    throw error;
   }
 
-  return result;
+  return response.json();
 }
 
 /**
  * Получить статистику преподавателя
  */
 export async function getTeacherStats(): Promise<TeacherStats> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/stats/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  const result = await response.json();
+  const response = await fetchWithAuth(`${API_URL}/courses/stats/`);
 
   if (!response.ok) {
-    throw result as ApiError;
+    let error: ApiError = {};
+    try { error = await response.json(); } catch { /* ignore parse error */ }
+    throw error;
   }
 
-  return result;
+  return response.json();
 }
 
 // ============================================
@@ -422,18 +549,14 @@ export async function createCourse(data: {
   title: string;
   description: string;
   category_id?: number | null;
+  category_name?: string;
   price?: number;
   enable_certificate?: boolean;
   certificate_title?: string;
 }): Promise<Course> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/my/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/my/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -450,14 +573,7 @@ export async function createCourse(data: {
  * Получить детали курса (для учителя)
  */
 export async function getTeacherCourseDetail(id: number): Promise<CourseDetail> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/my/${id}/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/my/${id}/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -479,14 +595,9 @@ export async function updateCourse(id: number, data: Partial<{
   enable_certificate: boolean;
   certificate_title: string;
 }>): Promise<Course> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/my/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/my/${id}/`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -503,19 +614,42 @@ export async function updateCourse(id: number, data: Partial<{
  * Удалить курс
  */
 export async function deleteCourse(id: number): Promise<void> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/my/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/my/${id}/`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
     const result = await response.json();
     throw result as ApiError;
   }
+}
+
+/**
+ * Загрузить обложку курса
+ */
+export async function uploadCourseImage(courseId: number, file: File): Promise<Course> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const token = getAccessToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/courses/my/${courseId}/upload-image/`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw result as ApiError;
+  }
+
+  return result;
 }
 
 // ============================================
@@ -529,14 +663,9 @@ export async function createModule(courseId: number, data: {
   title: string;
   description?: string;
 }): Promise<Module> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/${courseId}/modules/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/${courseId}/modules/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -558,14 +687,9 @@ export async function updateModule(id: number, data: Partial<{
   order: number;
   is_published: boolean;
 }>): Promise<Module> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${id}/`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -582,13 +706,8 @@ export async function updateModule(id: number, data: Partial<{
  * Удалить модуль
  */
 export async function deleteModule(id: number): Promise<void> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${id}/`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -610,14 +729,9 @@ export async function createLesson(moduleId: number, data: {
   video_url?: string;
   duration_minutes?: number;
 }): Promise<Lesson> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${moduleId}/lessons/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${moduleId}/lessons/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -641,14 +755,9 @@ export async function updateLesson(id: number, data: Partial<{
   duration_minutes: number;
   is_published: boolean;
 }>): Promise<Lesson> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/lessons/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/lessons/${id}/`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -665,13 +774,8 @@ export async function updateLesson(id: number, data: Partial<{
  * Удалить урок
  */
 export async function deleteLesson(id: number): Promise<void> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/lessons/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/lessons/${id}/`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -688,14 +792,7 @@ export async function deleteLesson(id: number): Promise<void> {
  * Получить тест модуля
  */
 export async function getModuleTest(moduleId: number): Promise<Test> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${moduleId}/test/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${moduleId}/test/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -715,14 +812,9 @@ export async function createTest(moduleId: number, data: {
   time_limit_minutes?: number;
   attempts_allowed?: number;
 }): Promise<Test> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${moduleId}/test/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${moduleId}/test/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -746,14 +838,9 @@ export async function updateTest(moduleId: number, data: Partial<{
   attempts_allowed: number;
   is_published: boolean;
 }>): Promise<Test> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${moduleId}/test/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${moduleId}/test/`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -770,13 +857,8 @@ export async function updateTest(moduleId: number, data: Partial<{
  * Удалить тест
  */
 export async function deleteTest(moduleId: number): Promise<void> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/modules/${moduleId}/test/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/modules/${moduleId}/test/`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -794,14 +876,9 @@ export async function createQuestion(testId: number, data: {
   points?: number;
   answers: { text: string; is_correct: boolean }[];
 }): Promise<Question> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/tests/${testId}/questions/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/tests/${testId}/questions/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -824,14 +901,9 @@ export async function updateQuestion(id: number, data: Partial<{
   points: number;
   answers: { text: string; is_correct: boolean }[];
 }>): Promise<Question> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/questions/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/questions/${id}/`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -848,13 +920,8 @@ export async function updateQuestion(id: number, data: Partial<{
  * Удалить вопрос
  */
 export async function deleteQuestion(id: number): Promise<void> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/questions/${id}/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/questions/${id}/`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -871,14 +938,8 @@ export async function deleteQuestion(id: number): Promise<void> {
  * Получить детали курса (публичный)
  */
 export async function getCourseDetail(id: number): Promise<CourseDetail> {
-  const token = getAccessToken();
-
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_URL}/courses/${id}/`, { headers });
+  // Используем fetchWithAuth - если токен истёк, он обновится или очистится
+  const response = await fetchWithAuth(`${API_URL}/courses/${id}/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -892,13 +953,8 @@ export async function getCourseDetail(id: number): Promise<CourseDetail> {
  * Записаться на курс
  */
 export async function enrollCourse(courseId: number): Promise<{ message: string }> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/${courseId}/enroll/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/${courseId}/enroll/`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   const result = await response.json();
@@ -907,6 +963,40 @@ export async function enrollCourse(courseId: number): Promise<{ message: string 
     throw result as ApiError;
   }
 
+  return result;
+}
+
+/**
+ * Инициализировать платёж за курс
+ */
+export async function initPayment(courseId: number): Promise<{ payment_id: string; amount: number; course_title: string } | { enrolled: boolean }> {
+  const response = await fetchWithAuth(`${API_URL}/courses/${courseId}/payment/init/`, {
+    method: 'POST',
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Подтвердить оплату (mock)
+ */
+export async function confirmPayment(paymentId: string): Promise<{ enrolled: boolean; course_id: number }> {
+  const response = await fetchWithAuth(`${API_URL}/courses/payment/${paymentId}/confirm/`, {
+    method: 'POST',
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Получить статус платежа
+ */
+export async function getPaymentStatus(paymentId: string): Promise<{ status: string; course_id: number; amount: number; course_title: string }> {
+  const response = await fetchWithAuth(`${API_URL}/courses/payment/${paymentId}/status/`);
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
   return result;
 }
 
@@ -920,14 +1010,7 @@ export interface Enrollment {
 }
 
 export async function getEnrollments(): Promise<Enrollment[]> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/enrolled/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/enrolled/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -979,14 +1062,7 @@ export interface CourseProgress {
  * Получить прогресс по курсу
  */
 export async function getCourseProgress(courseId: number): Promise<CourseProgress> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/${courseId}/progress/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/${courseId}/progress/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -1000,14 +1076,7 @@ export async function getCourseProgress(courseId: number): Promise<CourseProgres
  * Получить урок для просмотра студентом
  */
 export async function getStudentLesson(lessonId: number): Promise<LessonDetail> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/learn/lessons/${lessonId}/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/learn/lessons/${lessonId}/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -1021,13 +1090,8 @@ export async function getStudentLesson(lessonId: number): Promise<LessonDetail> 
  * Отметить урок как завершённый
  */
 export async function completeLesson(lessonId: number): Promise<{ detail: string }> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/lessons/${lessonId}/complete/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/lessons/${lessonId}/complete/`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   const result = await response.json();
@@ -1086,14 +1150,7 @@ export interface TestAttemptResult {
  * Начать тест (получить вопросы)
  */
 export async function startTest(testId: number): Promise<StudentTest> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/tests/${testId}/start/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/tests/${testId}/start/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -1107,14 +1164,9 @@ export async function startTest(testId: number): Promise<StudentTest> {
  * Отправить ответы теста
  */
 export async function submitTest(testId: number, answers: Record<string, number[]>): Promise<TestResult> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/tests/${testId}/submit/`, {
+  const response = await fetchWithAuth(`${API_URL}/courses/tests/${testId}/submit/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ answers }),
   });
 
@@ -1135,14 +1187,7 @@ export async function getTestResults(testId: number): Promise<{
   passing_score: number;
   attempts: TestAttemptResult[];
 }> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/tests/${testId}/results/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/tests/${testId}/results/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -1180,14 +1225,7 @@ export interface CertificateVerification {
  * Получить сертификат курса (или запросить генерацию)
  */
 export async function getCourseCertificate(courseId: number): Promise<Certificate> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/courses/${courseId}/certificate/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/${courseId}/certificate/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -1201,14 +1239,7 @@ export async function getCourseCertificate(courseId: number): Promise<Certificat
  * Получить все мои сертификаты
  */
 export async function getMyCertificates(): Promise<Certificate[]> {
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_URL}/certificates/`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
+  const response = await fetchWithAuth(`${API_URL}/courses/certificates/`);
   const result = await response.json();
 
   if (!response.ok) {
@@ -1222,7 +1253,7 @@ export async function getMyCertificates(): Promise<Certificate[]> {
  * Проверить сертификат по номеру
  */
 export async function verifyCertificate(certificateNumber: string): Promise<CertificateVerification> {
-  const response = await fetch(`${API_URL}/certificates/${certificateNumber}/verify/`);
+  const response = await fetch(`${API_URL}/courses/certificates/${certificateNumber}/verify/`);
 
   const result = await response.json();
 
@@ -1230,5 +1261,171 @@ export async function verifyCertificate(certificateNumber: string): Promise<Cert
     return { valid: false };
   }
 
+  return result;
+}
+
+// ============================================
+// УЧЕНИКИ УЧИТЕЛЯ
+// ============================================
+
+export interface StudentProgress {
+  id: number;
+  student: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  course: {
+    id: number;
+    title: string;
+  };
+  enrolled_at: string;
+  progress_percent: number;
+  completed_lessons: number;
+  total_lessons: number;
+  last_activity: string | null;
+  tests_passed: number;
+  tests_total: number;
+  average_score: number | null;
+}
+
+export interface TeacherStudentsResponse {
+  students: StudentProgress[];
+  total_students: number;
+  total_enrollments: number;
+}
+
+/**
+ * Получить учеников учителя с прогрессом
+ */
+export async function getTeacherStudents(courseId?: number): Promise<TeacherStudentsResponse> {
+  const params = courseId ? `?course_id=${courseId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/courses/my/students/${params}`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw result as ApiError;
+  }
+
+  return result;
+}
+
+/**
+ * Получить детальную информацию об ученике
+ */
+export interface StudentDetail {
+  student: {
+    id: number;
+    name: string;
+    email: string;
+    date_joined: string;
+  };
+  enrollments: {
+    course_id: number;
+    course_title: string;
+    enrolled_at: string;
+    progress_percent: number;
+    completed_lessons: number;
+    total_lessons: number;
+    last_activity: string | null;
+    test_results: {
+      test_id: number;
+      test_title: string;
+      module_title: string;
+      score: number;
+      is_passed: boolean;
+      attempts_count: number;
+      last_attempt: string;
+    }[];
+  }[];
+}
+
+export async function getStudentDetail(studentId: number): Promise<StudentDetail> {
+  const response = await fetchWithAuth(`${API_URL}/courses/my/students/${studentId}/`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw result as ApiError;
+  }
+
+  return result;
+}
+
+// ─── 2FA / TOTP ───────────────────────────────────────────────────────────────
+
+export interface TOTPSetupData {
+  secret: string;
+  qr_code: string;  // data:image/png;base64,...
+  uri: string;
+}
+
+export async function getTOTPSetup(): Promise<TOTPSetupData> {
+  const response = await fetchWithAuth(`${API_URL}/users/2fa/setup/`);
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+export async function confirmTOTPSetup(code: string): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/users/2fa/setup/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+export async function disableTOTP(password: string, code: string): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/users/2fa/disable/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password, code }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+export async function verifyTOTPLogin(
+  temp_token: string,
+  code: string
+): Promise<{ message: string; user: User; tokens: { access: string; refresh: string } }> {
+  const response = await fetch(`${API_URL}/users/2fa/verify-login/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ temp_token, code }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+// ─── Сброс пароля ─────────────────────────────────────────────────────────────
+
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_URL}/users/password-reset/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+export async function confirmPasswordReset(
+  token: string,
+  password: string,
+  password_confirm: string
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_URL}/users/password-reset/confirm/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password, password_confirm }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
   return result;
 }

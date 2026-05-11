@@ -13,6 +13,8 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
+  uploadCourseImage,
+  getMediaUrl,
   CourseDetail,
   Module,
   Lesson,
@@ -42,6 +44,9 @@ export default function EditCoursePage() {
     title: string;
     video_url: string;
   } | null>(null);
+
+  // Image upload
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'teacher')) {
@@ -79,6 +84,23 @@ export default function EditCoursePage() {
       setError('Ошибка при обновлении курса');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !course) return;
+
+    setUploadingImage(true);
+    try {
+      const updated = await uploadCourseImage(courseId, file);
+      setCourse({ ...course, image: updated.image });
+      setSuccess('Обложка обновлена');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Ошибка при загрузке обложки');
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -219,6 +241,24 @@ export default function EditCoursePage() {
     }
   }
 
+  async function handlePublishLesson(lessonId: number, moduleId: number, is_published: boolean) {
+    setSaving(true);
+    try {
+      await updateLesson(lessonId, { is_published });
+      setCourse(prev => prev ? {
+        ...prev,
+        modules: prev.modules?.map(m => m.id === moduleId ? {
+          ...m,
+          lessons: m.lessons?.map(l => l.id === lessonId ? { ...l, is_published } : l)
+        } : m)
+      } : null);
+    } catch (err) {
+      setError('Ошибка при обновлении урока');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -271,42 +311,88 @@ export default function EditCoursePage() {
         )}
 
         {/* Course Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {course.title}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
-                {course.description}
-              </p>
-              <div className="flex items-center gap-4 mt-4 text-sm">
-                <span className="text-gray-500 dark:text-gray-400">
-                  {course.modules?.length || 0} модулей
-                </span>
-                <span className="text-gray-500 dark:text-gray-400">
-                  {course.students_count || 0} студентов
-                </span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  course.is_published
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                }`}>
-                  {course.is_published ? 'Опубликован' : 'Черновик'}
-                </span>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+          {/* Обложка курса */}
+          <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600">
+            {course.image ? (
+              <img
+                src={getMediaUrl(course.image) || ''}
+                alt={course.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <svg className="w-16 h-16 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </div>
+            )}
+            <label className="absolute bottom-3 right-3 px-3 py-2 bg-white/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 rounded-lg cursor-pointer hover:bg-white dark:hover:bg-gray-800 transition-colors text-sm font-medium flex items-center gap-2">
+              {uploadingImage ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  Загрузка...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {course.image ? 'Изменить обложку' : 'Добавить обложку'}
+                </>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+              />
+            </label>
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  {course.title}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+                  {course.description}
+                </p>
+                <div className="flex items-center gap-4 mt-4 text-sm">
+                  {course.category_name && (
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                      {course.category_name}
+                    </span>
+                  )}
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {course.modules?.length || 0} модулей
+                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {course.students_count || 0} студентов
+                  </span>
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    course.is_published
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                  }`}>
+                    {course.is_published ? 'Опубликован' : 'Черновик'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handlePublish}
+                disabled={saving}
+                className={`px-4 py-2 rounded-xl font-medium transition-colors ${
+                  course.is_published
+                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {course.is_published ? 'Снять с публикации' : 'Опубликовать'}
+              </button>
             </div>
-            <button
-              onClick={handlePublish}
-              disabled={saving}
-              className={`px-4 py-2 rounded-xl font-medium transition-colors ${
-                course.is_published
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {course.is_published ? 'Снять с публикации' : 'Опубликовать'}
-            </button>
           </div>
         </div>
 
@@ -430,7 +516,16 @@ export default function EditCoursePage() {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <input
+                              type="checkbox"
+                              checked={lesson.is_published}
+                              onChange={(e) => handlePublishLesson(lesson.id, module.id, e.target.checked)}
+                              className="w-3.5 h-3.5 text-blue-600 rounded"
+                            />
+                            Опубл.
+                          </label>
                           <button
                             onClick={() => setEditingLesson(lesson.id)}
                             className="p-1.5 text-gray-500 hover:text-blue-600 transition-colors"
