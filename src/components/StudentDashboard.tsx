@@ -97,7 +97,7 @@ export default function StudentDashboard() {
           Студент
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-2">
-          {t('greeting', { name: user?.name || '' })} 👋
+          {t('greeting', { name: user?.name || '' })}
         </h1>
         <p className="text-slate-600 dark:text-slate-300 text-lg">
           {t('subtitle')}

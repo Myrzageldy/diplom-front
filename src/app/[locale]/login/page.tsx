@@ -5,6 +5,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useState, useEffect } from "react";
 import { useTranslations } from 'next-intl';
 import { loginUser, verifyTOTPLogin, ApiError, User } from "@/lib/api";
+import PasskeyLoginButton from "@/components/auth/PasskeyLoginButton";
 import { useAuth } from "@/lib/AuthContext";
 import { sanitizeEmail, isValidEmail } from "@/lib/sanitize";
 import {
@@ -345,6 +346,19 @@ export default function LoginPage() {
                     : t('submit')}
             </button>
           </form>
+
+          {/* Разделитель */}
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">или</span>
+            <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
+          </div>
+
+          {/* Кнопка входа через Passkey */}
+          <PasskeyLoginButton
+            email={email}
+            className="mt-4"
+          />
 
           {/* Register link */}
           <p className="mt-8 text-center text-gray-600 dark:text-gray-400">

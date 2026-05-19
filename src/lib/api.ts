@@ -1399,6 +1399,12 @@ export async function verifyTOTPLogin(
   });
   const result = await response.json();
   if (!response.ok) throw result as ApiError;
+
+  localStorage.setItem('access_token', result.tokens.access);
+  localStorage.setItem('refresh_token', result.tokens.refresh);
+  localStorage.setItem('user', JSON.stringify(result.user));
+  setAuthCookie(result.user.role);
+
   return result;
 }
 
@@ -1424,6 +1430,142 @@ export async function confirmPasswordReset(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, password, password_confirm }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+// ─── WebAuthn / Passkey ────────────────────────────────────────────────────────
+
+/** Данные одного passkey (как возвращает сервер) */
+export interface PasskeyCredential {
+  id: string;
+  name: string;
+  device_type: 'platform' | 'cross-platform';
+  transports: string[];
+  backed_up: boolean;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+/** Ответ сервера на успешный вход через passkey */
+export interface PasskeyLoginResponse {
+  message: string;
+  user: User;
+  tokens: { access: string; refresh: string };
+}
+
+/**
+ * Шаг 1 регистрации passkey: запрашиваем challenge у сервера.
+ * Требует JWT (пользователь должен быть авторизован).
+ */
+export async function passkeyRegisterBegin(): Promise<{
+  options: Record<string, unknown>;
+  session_id: string;
+}> {
+  const response = await fetchWithAuth(`${API_URL.replace('/api', '')}/api/auth/passkey/register/begin/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Шаг 2 регистрации passkey: отправляем подписанный ответ аутентификатора.
+ */
+export async function passkeyRegisterComplete(
+  session_id: string,
+  credential: Record<string, unknown>,
+  name: string,
+): Promise<{ message: string; passkey: PasskeyCredential }> {
+  const response = await fetchWithAuth(`${API_URL.replace('/api', '')}/api/auth/passkey/register/complete/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id, credential, name }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Шаг 1 входа через passkey: получаем challenge.
+ * email опционален — без него используется discoverable credentials flow.
+ */
+export async function passkeyLoginBegin(email?: string): Promise<{
+  options: Record<string, unknown>;
+  session_id: string;
+}> {
+  const body = email ? { email } : {};
+  const response = await fetch(`${API_URL.replace('/api', '')}/api/auth/passkey/login/begin/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Шаг 2 входа: отправляем подписанный assertion, получаем JWT.
+ */
+export async function passkeyLoginComplete(
+  session_id: string,
+  credential: Record<string, unknown>,
+): Promise<PasskeyLoginResponse> {
+  const response = await fetch(`${API_URL.replace('/api', '')}/api/auth/passkey/login/complete/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id, credential }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Получить список passkeys текущего пользователя.
+ */
+export async function getPasskeys(): Promise<PasskeyCredential[]> {
+  const response = await fetchWithAuth(`${API_URL.replace('/api', '')}/api/auth/passkey/`);
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Переименовать passkey.
+ */
+export async function renamePasskey(
+  id: string,
+  name: string,
+): Promise<{ message: string; passkey: PasskeyCredential }> {
+  const response = await fetchWithAuth(
+    `${API_URL.replace('/api', '')}/api/auth/passkey/${id}/`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    },
+  );
+  const result = await response.json();
+  if (!response.ok) throw result as ApiError;
+  return result;
+}
+
+/**
+ * Удалить passkey.
+ */
+export async function deletePasskey(id: string): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL.replace('/api', '')}/api/auth/passkey/`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
   });
   const result = await response.json();
   if (!response.ok) throw result as ApiError;
